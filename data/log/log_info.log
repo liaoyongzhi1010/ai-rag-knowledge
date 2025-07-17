@@ -297,3 +297,23 @@ Consider defining a bean of type 'org.springframework.ai.ollama.OllamaChatClient
 25-07-17.19:24:27.698 [main            ] INFO  Http11NioProtocol      - Starting ProtocolHandler ["http-nio-8090"]
 25-07-17.19:24:27.717 [main            ] INFO  TomcatWebServer        - Tomcat started on port 8090 (http) with context path ''
 25-07-17.19:24:27.723 [main            ] INFO  Application            - Started Application in 2.343 seconds (process running for 2.921)
+25-07-17.23:20:11.275 [main            ] INFO  Application            - Starting Application using Java 17.0.9 with PID 21192 (E:\zsxq\test\ai-rag-knowledge\ai-rag-knowledge-app\target\classes started by lyz in E:\zsxq\test\ai-rag-knowledge)
+25-07-17.23:20:11.276 [main            ] INFO  Application            - The following 1 profile is active: "dev"
+25-07-17.23:20:11.645 [main            ] INFO  RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+25-07-17.23:20:11.646 [main            ] INFO  RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+25-07-17.23:20:11.667 [main            ] INFO  RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 10 ms. Found 0 Redis repository interfaces.
+25-07-17.23:20:11.956 [main            ] INFO  TomcatWebServer        - Tomcat initialized with port 8090 (http)
+25-07-17.23:20:11.964 [main            ] INFO  Http11NioProtocol      - Initializing ProtocolHandler ["http-nio-8090"]
+25-07-17.23:20:11.965 [main            ] INFO  StandardService        - Starting service [Tomcat]
+25-07-17.23:20:11.965 [main            ] INFO  StandardEngine         - Starting Servlet engine: [Apache Tomcat/10.1.19]
+25-07-17.23:20:12.003 [main            ] INFO  [/]                    - Initializing Spring embedded WebApplicationContext
+25-07-17.23:20:12.003 [main            ] INFO  ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 702 ms
+25-07-17.23:20:12.367 [main            ] INFO  Version                - Redisson 3.44.0
+25-07-17.23:20:12.513 [redisson-netty-1-5] INFO  ConnectionsHolder      - 1 connections initialized for localhost/127.0.0.1:16379
+25-07-17.23:20:12.528 [redisson-netty-1-14] INFO  ConnectionsHolder      - 5 connections initialized for localhost/127.0.0.1:16379
+25-07-17.23:20:12.962 [main            ] INFO  Http11NioProtocol      - Starting ProtocolHandler ["http-nio-8090"]
+25-07-17.23:20:12.969 [main            ] INFO  TomcatWebServer        - Tomcat started on port 8090 (http) with context path ''
+25-07-17.23:20:12.975 [main            ] INFO  Application            - Started Application in 2.037 seconds (process running for 5.451)
+25-07-17.23:21:36.987 [http-nio-8090-exec-1] INFO  [/]                    - Initializing Spring DispatcherServlet 'dispatcherServlet'
+25-07-17.23:21:36.987 [http-nio-8090-exec-1] INFO  DispatcherServlet      - Initializing Servlet 'dispatcherServlet'
+25-07-17.23:21:36.988 [http-nio-8090-exec-1] INFO  DispatcherServlet      - Completed initialization in 1 ms
