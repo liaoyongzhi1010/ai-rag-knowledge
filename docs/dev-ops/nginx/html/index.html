@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 对话助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .typing-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #3b82f6;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        .typing-indicator:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator:nth-child(2) { animation-delay: -0.16s; }
+        .typing-indicator:nth-child(3) { animation-delay: 0s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<div class="container mx-auto max-w-4xl h-screen flex flex-col">
+    <!-- 头部 -->
+    <header class="bg-white shadow-sm border-b px-6 py-4">
+        <div class="flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-800">AI 对话助手</h1>
+            <div class="flex items-center space-x-2">
+                <select id="modelSelect" class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="deepseek-r1:1.5b">deepseek-r1:1.5b</option>
+                    <option value="llama2:7b">llama2:7b</option>
+                    <option value="qwen:7b">qwen:7b</option>
+                </select>
+                <button id="clearBtn" class="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50">
+                    清空对话
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 聊天区域 -->
+    <div class="flex-1 overflow-hidden flex flex-col">
+        <div id="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-4">
+            <!-- 欢迎消息 -->
+            <div class="flex justify-center">
+                <div class="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm">
+                    👋 欢迎使用AI对话助手，请输入您的问题
+                </div>
+            </div>
+        </div>
+
+        <!-- 输入区域 -->
+        <div class="bg-white border-t px-6 py-4">
+            <div class="flex space-x-3">
+                <div class="flex-1 relative">
+                        <textarea
+                                id="messageInput"
+                                placeholder="请输入您的问题..."
+                                rows="1"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        ></textarea>
+                </div>
+                <button
+                        id="sendBtn"
+                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    发送
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    class AIChat {
+        constructor() {
+            this.chatContainer = document.getElementById('chatContainer');
+            this.messageInput = document.getElementById('messageInput');
+            this.sendBtn = document.getElementById('sendBtn');
+            this.clearBtn = document.getElementById('clearBtn');
+            this.modelSelect = document.getElementById('modelSelect');
+            this.currentEventSource = null;
+            this.currentAssistantMessage = null;
+
+            this.initEventListeners();
+            this.adjustTextareaHeight();
+        }
+
+        initEventListeners() {
+            // 发送按钮点击事件
+            this.sendBtn.addEventListener('click', () => this.sendMessage());
+
+            // 回车发送消息
+            this.messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            });
+
+            // 自动调整输入框高度
+            this.messageInput.addEventListener('input', () => this.adjustTextareaHeight());
+
+            // 清空对话
+            this.clearBtn.addEventListener('click', () => this.clearChat());
+        }
+
+        adjustTextareaHeight() {
+            this.messageInput.style.height = 'auto';
+            this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 120) + 'px';
+        }
+
+        sendMessage() {
+            const message = this.messageInput.value.trim();
+            const model = this.modelSelect.value;
+
+            if (!message || this.sendBtn.disabled) return;
+
+            // 添加用户消息
+            this.addUserMessage(message);
+
+            // 清空输入框并重置高度
+            this.messageInput.value = '';
+            this.adjustTextareaHeight();
+
+            // 添加AI消息占位符
+            this.addAssistantMessage();
+
+            // 发送流式请求
+            this.sendStreamRequest(model, message);
+        }
+
+        addUserMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex justify-end';
+            messageDiv.innerHTML = `
+                    <div class="max-w-xs lg:max-w-2xl bg-blue-600 text-white rounded-lg px-4 py-2">
+                        <div class="text-sm whitespace-pre-wrap">${this.escapeHtml(message)}</div>
+                    </div>
+                `;
+            this.chatContainer.appendChild(messageDiv);
+            this.scrollToBottom();
+        }
+
+        addAssistantMessage() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex justify-start';
+            messageDiv.innerHTML = `
+                    <div class="max-w-xs lg:max-w-2xl bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-sm">
+                        <div class="text-sm text-gray-800">
+                            <div class="typing-container flex space-x-1">
+                                <div class="typing-indicator"></div>
+                                <div class="typing-indicator"></div>
+                                <div class="typing-indicator"></div>
+                            </div>
+                            <div class="content-text hidden whitespace-pre-wrap"></div>
+                        </div>
+                    </div>
+                `;
+
+            this.chatContainer.appendChild(messageDiv);
+            this.currentAssistantMessage = messageDiv.querySelector('.content-text');
+            this.scrollToBottom();
+        }
+
+        sendStreamRequest(model, message) {
+            this.setLoadingState(true);
+
+            // 关闭之前的连接
+            if (this.currentEventSource) {
+                this.currentEventSource.close();
+            }
+
+            const apiUrl = `http://localhost:8090/api/v1/ollama/generate_stream?model=${encodeURIComponent(model)}&message=${encodeURIComponent(message)}`;
+
+            this.currentEventSource = new EventSource(apiUrl);
+
+            this.currentEventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    this.handleStreamResponse(data);
+                } catch (error) {
+                    console.error('解析响应数据失败:', error);
+                }
+            };
+
+            this.currentEventSource.onerror = (error) => {
+                console.error('EventSource 连接错误:', error);
+                this.handleStreamError();
+            };
+        }
+
+        handleStreamResponse(data) {
+            if (!data.result || !data.result.output) return;
+
+            const content = data.result.output.content;
+            const finishReason = data.result.metadata?.finishReason;
+
+            // 隐藏打字动画，显示内容
+            const typingContainer = this.chatContainer.querySelector('.typing-container');
+            if (typingContainer && !typingContainer.classList.contains('hidden')) {
+                typingContainer.classList.add('hidden');
+                this.currentAssistantMessage.classList.remove('hidden');
+            }
+
+            // 添加内容（如果content不为空）
+            if (content) {
+                this.currentAssistantMessage.textContent += content;
+                this.scrollToBottom();
+            }
+
+            // 检查是否结束
+            if (finishReason === 'STOP') {
+                this.handleStreamComplete();
+            }
+        }
+
+        handleStreamComplete() {
+            this.currentEventSource.close();
+            this.currentEventSource = null;
+            this.currentAssistantMessage = null;
+            this.setLoadingState(false);
+        }
+
+        handleStreamError() {
+            const typingContainer = this.chatContainer.querySelector('.typing-container');
+            if (typingContainer) {
+                typingContainer.classList.add('hidden');
+                this.currentAssistantMessage.classList.remove('hidden');
+                // this.currentAssistantMessage.textContent = '抱歉，请求失败，请稍后重试。';
+            }
+
+            this.handleStreamComplete();
+        }
+
+        setLoadingState(loading) {
+            this.sendBtn.disabled = loading;
+            this.sendBtn.textContent = loading ? '发送中...' : '发送';
+            this.messageInput.disabled = loading;
+        }
+
+        clearChat() {
+            // 保留欢迎消息
+            this.chatContainer.innerHTML = `
+                    <div class="flex justify-center">
+                        <div class="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm">
+                            👋 欢迎使用AI对话助手，请输入您的问题
+                        </div>
+                    </div>
+                `;
+
+            // 关闭当前连接
+            if (this.currentEventSource) {
+                this.currentEventSource.close();
+                this.currentEventSource = null;
+            }
+
+            this.currentAssistantMessage = null;
+            this.setLoadingState(false);
+        }
+
+        scrollToBottom() {
+            this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+        }
+
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    }
+
+    // 初始化应用
+    document.addEventListener('DOMContentLoaded', () => {
+        new AIChat();
+    });
+</script>
+</body>
+</html>
